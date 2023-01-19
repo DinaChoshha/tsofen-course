@@ -131,13 +131,13 @@ Outputs:
 
   PublicSubnet:
     Description: A reference to the created Public Subnet
-    Value: !Ref VPC
+    Value: !Ref PublicSubnet
     Export:
       Name: PublicSubnetOutput
 
   PrivateSubnet:
     Description: A reference to the created Private Subnet
-    Value: !Ref VPC
+    Value: !Ref PrivateSubnet
     Export:
       Name: PrivateSubnetOutput
     

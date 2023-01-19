@@ -1,0 +1,48 @@
+Parameters:
+
+  KeyName:
+    Description: Enter a name of an existing key pair
+    Type: String
+    Default: myKP
+
+Resources:
+  publicInstance: 
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: "t2.micro"
+      ImageId: "ami-00874d747dde814fa"
+      KeyName: 
+        Ref: "KeyName"
+      NetworkInterfaces: 
+        -  AssociatePublicIpAddress: "true"
+           DeviceIndex: "0"
+           GroupSet:
+             -  Fn::ImportValue: "securityGroupOutput"
+           SubnetId: 
+             Fn::ImportValue: "PublicSubnetOutput"
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+            sudo apt update
+            sudo apt upgrade -y
+            sudo apt install nginx
+
+  privateInstance: 
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: "t2.micro"
+      ImageId: "ami-00874d747dde814fa"
+      KeyName: 
+        Ref: "KeyName"
+      NetworkInterfaces: 
+        -  DeviceIndex: "0"
+           GroupSet:
+             -  Fn::ImportValue: "securityGroupOutput"
+           SubnetId: 
+             Fn::ImportValue: "PrivateSubnetOutput"
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+            sudo apt update
+            sudo apt upgrade -y
+            sudo apt install mysql-server
