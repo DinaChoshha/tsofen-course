@@ -1,0 +1,127 @@
+1.
+create bucket:
+aws s3api create-bucket --bucket test-bucket-15022023
+
+upload file to bucket:
+aws s3 cp hello.txt s3://test-bucket-15022023
+
+download file from bucket:
+aws s3 cp s3://test-bucket-15022023/hello.txt .
+
+2.
+create topic:
+aws sns create-topic --name s3UploadTopic
+
+subscribe to topic:
+aws sns subscribe --topic-arn arn:aws:sns:us-east-1:166145399123:s3UploadTopic --protocol email --notification-endpoint dinachoshha@gmail.com
+
+add policy that allows our account to publish:
+aws sns set-topic-attributes \
+--topic-arn 'arn:aws:sns:us-east-1:166145399123:s3UploadTopic' \
+--attribute-name 'Policy' \
+--attribute-value '{
+  "Version": "2012-10-17",
+  "Id": "example-ID",
+  "Statement": [
+    {
+      "Sid": "example-statement-ID",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "*"
+      },
+      "Action": "SNS:Publish",
+      "Resource": "arn:aws:sns:us-east-1:166145399123:s3UploadTopic",
+      "Condition": {
+        "StringEquals": {
+          "aws:SourceAccount": "166145399123"
+        },
+        "ArnLike": {
+          "aws:SourceArn": "arn:aws:s3:::test-bucket-15022023"
+        }
+      }
+    }
+  ]
+}'
+
+add event notification to the bucket for uploaded files:
+aws s3api put-bucket-notification-configuration \
+  --bucket  test-bucket-15022023 \
+  --notification-configuration '{
+    "TopicConfigurations": [
+      {
+        "TopicArn": "arn:aws:sns:us-east-1:166145399123:s3UploadTopic",
+        "Events": ["s3:ObjectCreated:Put"]
+      }
+    ]
+  }'
+
+3.
+create publisher user:
+aws iam create-user --user-name publisher
+
+create access key for user:
+aws iam create-access-key --user-name publisher
+
+configure user in cli:
+aws configure --profile publisher
+
+create policy that allows to upload files to the bucket:
+ aws iam create-policy \
+--policy-name uploadToS3Bucket \
+--policy-document '{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": "s3:PutObject",
+            "Resource": "arn:aws:s3:::test-bucket-15022023/*"
+        }
+    ]
+}'
+
+attach policy to user:
+ aws iam attach-user-policy \
+--user-name publisher \
+--policy-arn arn:aws:iam::166145399123:policy/uploadToS3Bucket
+
+make sure you can upload files:
+aws s3 cp example.txt s3://test-bucket-15022023 --profile publisher
+
+make sure you can't download files:
+aws s3 cp s3://test-bucket-15022023/example.txt . --profile publisher
+
+create receiver user
+aws iam create-user --user-name receiver
+
+create access key for user:
+aws iam create-access-key --user-name receiver
+
+configure user in cli:
+aws configure --profile receiver
+
+create policy that allows to upload files to the bucket:
+ aws iam create-policy \
+--policy-name downloadFromS3Bucket \
+--policy-document '{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::test-bucket-15022023/*"
+        }
+    ]
+}'
+
+attach policy to user:
+ aws iam attach-user-policy \
+--user-name receiver \
+--policy-arn arn:aws:iam::166145399123:policy/downloadFromS3Bucket
+
+make sure you can't upload files:
+aws s3 cp example.txt s3://test-bucket-15022023 --profile receiver
+
+make sure you can download files:
+aws s3 cp s3://test-bucket-15022023/example.txt . --profile receiver
